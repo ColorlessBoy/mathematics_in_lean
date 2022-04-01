@@ -7,7 +7,7 @@ open nat
 
 #check 2 + 2
 
-def f (x : ℕ) := x + 3
+def f (x : ℕ) := x + 3 /- f := def(x: N, x + 3) -/
 
 #check f
 
