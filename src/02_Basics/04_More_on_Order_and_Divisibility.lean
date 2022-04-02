@@ -40,21 +40,101 @@ begin
 end
 
 example : max a b = max b a :=
-sorry
+begin
+  apply ge_antisymm,
+  repeat {
+    apply max_le,
+    apply le_max_right,
+    apply le_max_left
+  }
+end
 
 example : min (min a b) c = min a (min b c) :=
-sorry
+begin
+  apply le_antisymm,
+  {
+    apply le_min,
+    {
+      apply le_trans,
+      apply min_le_left,
+      apply min_le_left
+    },
+    {
+      apply le_min,
+      {
+        apply le_trans,
+        apply min_le_left,
+        apply min_le_right
+      },
+      apply min_le_right,
+    }
+  },
+  {
+    apply le_min,
+    {
+      apply le_min,
+      apply min_le_left,
+      {
+        apply le_trans,
+        apply min_le_right,
+        apply min_le_left
+      },
+    },
+    {
+      apply le_trans,
+      apply min_le_right,
+      apply min_le_right
+    }
+  }
+end
 
 lemma aux : min a b + c ≤ min (a + c) (b + c) :=
-sorry
+begin
+  apply le_min,
+  {
+    apply add_le_add,
+    apply min_le_left,
+    apply le_refl
+  },
+  {
+    apply add_le_add,
+    apply min_le_right,
+    apply le_refl
+  }
+end
 
 example : min a b + c = min (a + c) (b + c) :=
-sorry
+begin
+  apply le_antisymm,
+  { apply aux },
+  {
+    have h : min (a + c) (b + c) = min (a + c) (b + c) - c + c,
+    { rw sub_add_cancel },
+    rw h,
+    apply add_le_add_right,
+    rw sub_eq_add_neg,
+    apply le_trans,
+    apply aux,
+    rw [add_neg_cancel_right, add_neg_cancel_right],
+  }
+end
 
 #check (abs_add : ∀ a b : ℝ, abs (a + b) ≤ abs a + abs b)
+#check (sub_add_cancel)
 
 example : abs a - abs b ≤ abs (a - b) :=
-sorry
+begin
+  calc 
+    abs a - abs b = abs (a - b + b) - abs b 
+      : by rw sub_add_cancel
+    ... ≤ abs (a - b) + abs b - abs b : 
+      begin
+        apply sub_le_sub_right,
+        apply abs_add
+      end
+    ... ≤ abs (a - b) :
+      by rw add_sub_cancel,
+end
 
 end
 
@@ -74,7 +154,20 @@ example : x ∣ x^2 :=
 by apply dvd_mul_right
 
 example (h : x ∣ w) : x ∣ y * (x * z) + x^2 + w^2 :=
-sorry
+begin
+  apply dvd_add,
+  apply dvd_add,
+  {
+    apply dvd_mul_of_dvd_right,
+    apply dvd_mul_right,
+  },
+  {
+    apply dvd_mul_right
+  },
+  rw pow_two,
+  apply dvd_mul_of_dvd_right,
+  exact h
+end
 
 end
 
@@ -86,8 +179,15 @@ open nat
 #check (gcd_zero_left n  : gcd 0 n = n)
 #check (lcm_zero_right n : lcm n 0 = 0)
 #check (lcm_zero_left n  : lcm 0 n = 0)
+#check (dvd_antisymm)
 
 example : gcd m n = gcd n m :=
-sorry
+begin
+  apply dvd_antisymm,
+  repeat {
+    apply dvd_gcd,
+    apply gcd_dvd_right,
+    apply gcd_dvd_left }
+end
 
 end
