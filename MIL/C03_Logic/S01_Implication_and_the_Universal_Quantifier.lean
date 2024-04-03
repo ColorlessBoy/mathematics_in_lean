@@ -7,8 +7,15 @@ namespace C03S01
 
 #check ∀ x y ε : ℝ, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε
 
-theorem my_lemma : ∀ x y ε : ℝ, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε :=
-  sorry
+theorem my_lemma : ∀ x y ε : ℝ, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε := by
+  intro x y ε epos ele1 xlt ylt
+  calc
+    |x * y| = |x| * |y| := abs_mul x y
+    _ ≤ |x| * ε := mul_le_mul le_rfl (le_of_lt ylt) (abs_nonneg y) (abs_nonneg x)
+    _ < 1 * ε := by
+      rewrite [mul_comm 1 ε]
+      apply mul_lt_mul xlt ele1 epos (le_of_lt epos)
+    _ = ε := one_mul ε
 
 section
 variable (a b δ : ℝ)
@@ -21,8 +28,15 @@ variable (ha : |a| < δ) (hb : |b| < δ)
 
 end
 
-theorem my_lemma2 : ∀ {x y ε : ℝ}, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε :=
-  sorry
+theorem my_lemma2 : ∀ {x y ε : ℝ}, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε := by
+  intro x y ε epos ele1 xlt ylt
+  calc
+    |x * y| = |x| * |y| := abs_mul x y
+    _ ≤ |x| * ε := mul_le_mul le_rfl (le_of_lt ylt) (abs_nonneg y) (abs_nonneg x)
+    _ < 1 * ε := by
+      rewrite [mul_comm 1 ε]
+      apply mul_lt_mul xlt ele1 epos (le_of_lt epos)
+    _ = ε := one_mul ε
 
 section
 variable (a b δ : ℝ)
@@ -36,22 +50,33 @@ end
 theorem my_lemma3 :
     ∀ {x y ε : ℝ}, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε := by
   intro x y ε epos ele1 xlt ylt
-  sorry
+  calc
+    |x * y| = |x| * |y| := abs_mul x y
+    _ ≤ |x| * ε := mul_le_mul le_rfl (le_of_lt ylt) (abs_nonneg y) (abs_nonneg x)
+    _ < 1 * ε := by
+      rewrite [mul_comm 1 ε]
+      apply mul_lt_mul xlt ele1 epos (le_of_lt epos)
+    _ = ε := one_mul ε
 
+#check abs_mul
+#check mul_le_mul
+#check abs_nonneg
+#check le_of_lt
+#check one_mul
 theorem my_lemma4 :
     ∀ {x y ε : ℝ}, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε := by
   intro x y ε epos ele1 xlt ylt
   calc
-    |x * y| = |x| * |y| := sorry
-    _ ≤ |x| * ε := sorry
-    _ < 1 * ε := sorry
-    _ = ε := sorry
+    |x * y| = |x| * |y| := abs_mul x y
+    _ ≤ |x| * ε := mul_le_mul le_rfl (le_of_lt ylt) (abs_nonneg y) (abs_nonneg x)
+    _ < 1 * ε := by
+      rewrite [mul_comm 1 ε]
+      apply mul_lt_mul xlt ele1 epos (le_of_lt epos)
+    _ = ε := one_mul ε
 
-def FnUb (f : ℝ → ℝ) (a : ℝ) : Prop :=
-  ∀ x, f x ≤ a
+def FnUb (f : ℝ → ℝ) (a : ℝ) : Prop := ∀ x, f x ≤ a
 
-def FnLb (f : ℝ → ℝ) (a : ℝ) : Prop :=
-  ∀ x, a ≤ f x
+def FnLb (f : ℝ → ℝ) (a : ℝ) : Prop := ∀ x, a ≤ f x
 
 section
 variable (f g : ℝ → ℝ) (a b : ℝ)
@@ -63,16 +88,22 @@ example (hfa : FnUb f a) (hgb : FnUb g b) : FnUb (fun x ↦ f x + g x) (a + b) :
   apply hfa
   apply hgb
 
-example (hfa : FnLb f a) (hgb : FnLb g b) : FnLb (fun x ↦ f x + g x) (a + b) :=
-  sorry
+example (hfa : FnLb f a) (hgb : FnLb g b) : FnLb (fun x ↦ f x + g x) (a + b) := by
+  intro x
+  dsimp
+  apply add_le_add (hfa x) (hgb x)
 
-example (nnf : FnLb f 0) (nng : FnLb g 0) : FnLb (fun x ↦ f x * g x) 0 :=
-  sorry
+example (nnf : FnLb f 0) (nng : FnLb g 0) : FnLb (fun x ↦ f x * g x) 0 := by
+  intro x
+  dsimp
+  rewrite [← zero_mul 0]
+  apply mul_le_mul (nnf x) (nng x) (le_rfl) (nnf x)
 
 example (hfa : FnUb f a) (hgb : FnUb g b) (nng : FnLb g 0) (nna : 0 ≤ a) :
-    FnUb (fun x ↦ f x * g x) (a * b) :=
-  sorry
-
+    FnUb (fun x ↦ f x * g x) (a * b) := by
+  intro x
+  dsimp
+  apply mul_le_mul (hfa x) (hgb x) (nng x) nna
 end
 
 section
@@ -80,8 +111,7 @@ variable {α : Type*} {R : Type*} [OrderedCancelAddCommMonoid R]
 
 #check add_le_add
 
-def FnUb' (f : α → R) (a : R) : Prop :=
-  ∀ x, f x ≤ a
+def FnUb' (f : α → R) (a : R) : Prop := ∀ x, f x ≤ a
 
 theorem fnUb_add {f g : α → R} {a b : R} (hfa : FnUb' f a) (hgb : FnUb' g b) :
     FnUb' (fun x ↦ f x + g x) (a + b) := fun x ↦ add_le_add (hfa x) (hgb x)
@@ -101,19 +131,17 @@ example (mf : Monotone f) (mg : Monotone g) : Monotone fun x ↦ f x + g x := by
   apply mg aleb
 
 example (mf : Monotone f) (mg : Monotone g) : Monotone fun x ↦ f x + g x :=
-  fun a b aleb ↦ add_le_add (mf aleb) (mg aleb)
+  fun _ _ aleb ↦ add_le_add (mf aleb) (mg aleb)
 
 example {c : ℝ} (mf : Monotone f) (nnc : 0 ≤ c) : Monotone fun x ↦ c * f x :=
-  sorry
+  fun _ _ aleb ↦ mul_le_mul_of_nonneg_left (mf aleb) nnc
 
 example (mf : Monotone f) (mg : Monotone g) : Monotone fun x ↦ f (g x) :=
-  sorry
+  fun _ _ aleb ↦ mf (mg aleb)
 
-def FnEven (f : ℝ → ℝ) : Prop :=
-  ∀ x, f x = f (-x)
+def FnEven (f : ℝ → ℝ) : Prop := ∀ x, f x = f (-x)
 
-def FnOdd (f : ℝ → ℝ) : Prop :=
-  ∀ x, f x = -f (-x)
+def FnOdd (f : ℝ → ℝ) : Prop := ∀ x, f x = -f (-x)
 
 example (ef : FnEven f) (eg : FnEven g) : FnEven fun x ↦ f x + g x := by
   intro x
@@ -122,15 +150,22 @@ example (ef : FnEven f) (eg : FnEven g) : FnEven fun x ↦ f x + g x := by
     _ = f (-x) + g (-x) := by rw [ef, eg]
 
 
+#check neg_mul_neg
 example (of : FnOdd f) (og : FnOdd g) : FnEven fun x ↦ f x * g x := by
-  sorry
+  intro x
+  dsimp
+  rw [of, og, neg_mul_neg]
 
+#check mul_neg
 example (ef : FnEven f) (og : FnOdd g) : FnOdd fun x ↦ f x * g x := by
-  sorry
+  intro x
+  dsimp
+  rw [ef, og, mul_neg]
 
 example (ef : FnEven f) (og : FnOdd g) : FnEven fun x ↦ f (g x) := by
-  sorry
-
+  intro x
+  dsimp
+  rw [og, ← ef]
 end
 
 section
@@ -141,10 +176,11 @@ example : s ⊆ s := by
   intro x xs
   exact xs
 
-theorem Subset.refl : s ⊆ s := fun x xs ↦ xs
+theorem Subset.refl : s ⊆ s := fun _ xs ↦ xs
 
 theorem Subset.trans : r ⊆ s → s ⊆ t → r ⊆ t := by
-  sorry
+  intro h1 h2 x hx
+  exact h2 (h1 hx)
 
 end
 
@@ -152,12 +188,13 @@ section
 variable {α : Type*} [PartialOrder α]
 variable (s : Set α) (a b : α)
 
-def SetUb (s : Set α) (a : α) :=
-  ∀ x, x ∈ s → x ≤ a
+def SetUb (s : Set α) (a : α) := ∀ x, x ∈ s → x ≤ a
 
-example (h : SetUb s a) (h' : a ≤ b) : SetUb s b :=
-  sorry
-
+#check le_trans
+example (h : SetUb s a) (h' : a ≤ b) : SetUb s b := by
+  intro x hx
+  apply h at hx
+  apply le_trans hx h'
 end
 
 section
@@ -168,13 +205,19 @@ example (c : ℝ) : Injective fun x ↦ x + c := by
   intro x₁ x₂ h'
   exact (add_left_inj c).mp h'
 
+#check mul_right_inj'
 example {c : ℝ} (h : c ≠ 0) : Injective fun x ↦ c * x := by
-  sorry
+  intro x hx
+  dsimp
+  exact (mul_right_inj' h).mp
 
 variable {α : Type*} {β : Type*} {γ : Type*}
 variable {g : β → γ} {f : α → β}
 
 example (injg : Injective g) (injf : Injective f) : Injective fun x ↦ g (f x) := by
-  sorry
-
+  intro x hx
+  dsimp
+  intro hy
+  apply injf
+  apply injg hy
 end
