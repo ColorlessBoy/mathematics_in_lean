@@ -25,22 +25,16 @@ example : ∃ x : ℝ, 2 < x ∧ x < 3 :=
 example : ∃ x : ℝ, 2 < x ∧ x < 3 :=
   ⟨5 / 2, by norm_num⟩
 
-def FnUb (f : ℝ → ℝ) (a : ℝ) : Prop :=
-  ∀ x, f x ≤ a
-
-def FnLb (f : ℝ → ℝ) (a : ℝ) : Prop :=
-  ∀ x, a ≤ f x
-
-def FnHasUb (f : ℝ → ℝ) :=
-  ∃ a, FnUb f a
-
-def FnHasLb (f : ℝ → ℝ) :=
-  ∃ a, FnLb f a
-
+def FnUb (f : ℝ → ℝ) (a : ℝ) : Prop := ∀ x, f x ≤ a
+def FnLb (f : ℝ → ℝ) (a : ℝ) : Prop := ∀ x, a ≤ f x
+def FnHasUb (f : ℝ → ℝ) := ∃ a, FnUb f a
+def FnHasLb (f : ℝ → ℝ) := ∃ a, FnLb f a
 theorem fnUb_add {f g : ℝ → ℝ} {a b : ℝ} (hfa : FnUb f a) (hgb : FnUb g b) :
     FnUb (fun x ↦ f x + g x) (a + b) :=
   fun x ↦ add_le_add (hfa x) (hgb x)
-
+theorem fnLb_add {f g : ℝ → ℝ} {a b : ℝ} (hfa : FnLb f a) (hgb : FnLb g b) :
+    FnLb (fun x ↦ f x + g x) (a + b) :=
+  fun x ↦ add_le_add (hfa x) (hgb x)
 section
 
 variable {f g : ℝ → ℝ}
@@ -52,10 +46,17 @@ example (ubf : FnHasUb f) (ubg : FnHasUb g) : FnHasUb fun x ↦ f x + g x := by
   apply fnUb_add ubfa ubgb
 
 example (lbf : FnHasLb f) (lbg : FnHasLb g) : FnHasLb fun x ↦ f x + g x := by
-  sorry
+  rcases lbf with ⟨a, lbfa⟩
+  rcases lbg with ⟨b, lbgb⟩
+  use (a + b)
+  dsimp
+  apply fnLb_add lbfa lbgb
 
 example {c : ℝ} (ubf : FnHasUb f) (h : c ≥ 0) : FnHasUb fun x ↦ c * f x := by
-  sorry
+  obtain ⟨a, ubfa⟩ := ubf
+  use c * a
+  intro x
+  apply mul_le_mul_of_nonneg_left (ubfa x) h
 
 example : FnHasUb f → FnHasUb g → FnHasUb fun x ↦ f x + g x := by
   rintro ⟨a, ubfa⟩ ⟨b, ubgb⟩
@@ -126,24 +127,33 @@ example (divab : a ∣ b) (divbc : b ∣ c) : a ∣ c := by
   rcases divab with ⟨d, beq⟩
   rcases divbc with ⟨e, ceq⟩
   rw [ceq, beq]
-  use d * e; ring
+  use d * e;
+  rw [mul_assoc]
 
 example (divab : a ∣ b) (divac : a ∣ c) : a ∣ b + c := by
-  sorry
-
+  rcases divab with ⟨d, beq⟩
+  rcases divac with ⟨e, ceq⟩
+  use d + e
+  rw [beq, ceq, mul_add]
 end
 
 section
 
 open Function
 
+#check sub_add_cancel
 example {c : ℝ} : Surjective fun x ↦ x + c := by
-  intro x
-  use x - c
-  dsimp; ring
+  intro y
+  use y - c
+  dsimp;
+  rw [sub_add_cancel]
 
+#check mul_div_cancel'
 example {c : ℝ} (h : c ≠ 0) : Surjective fun x ↦ c * x := by
-  sorry
+  intro y
+  dsimp
+  use y / c
+  exact mul_div_cancel' y h
 
 example (x y : ℝ) (h : x - y ≠ 0) : (x ^ 2 - y ^ 2) / (x - y) = x + y := by
   field_simp [h]
@@ -163,6 +173,10 @@ variable {α : Type*} {β : Type*} {γ : Type*}
 variable {g : β → γ} {f : α → β}
 
 example (surjg : Surjective g) (surjf : Surjective f) : Surjective fun x ↦ g (f x) := by
-  sorry
-
+  intro y1
+  rcases surjg y1 with ⟨x1, hx1⟩
+  dsimp
+  rcases surjf x1 with ⟨x2, hx2⟩
+  use x2
+  rw [hx2, hx1]
 end
