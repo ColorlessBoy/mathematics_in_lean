@@ -17,6 +17,8 @@ example : f ⁻¹' (u ∩ v) = f ⁻¹' u ∩ f ⁻¹' v := by
   ext x
   rfl
 
+#check {s, t}
+
 example : f '' (s ∪ t) = f '' s ∪ f '' t := by
   ext y; constructor
   · rintro ⟨x, xs | xt, hfx⟩
