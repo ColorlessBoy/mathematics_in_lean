@@ -10,7 +10,8 @@ theorem two_le {m : ℕ} (h0 : m ≠ 0) (h1 : m ≠ 1) : 2 ≤ m := by
   cases m; contradiction
   case succ m =>
     cases m; contradiction
-    repeat' apply Nat.succ_le_succ
+    apply Nat.succ_le_succ
+    apply Nat.succ_le_succ
     apply zero_le
 
 example {m : ℕ} (h0 : m ≠ 0) (h1 : m ≠ 1) : 2 ≤ m := by
@@ -43,21 +44,44 @@ theorem exists_prime_factor {n : Nat} (h : 2 ≤ n) : ∃ p : Nat, p.Prime ∧ p
     use p, pp
     apply pdvd.trans mdvdn
 
+#check Nat.factorial_pos
+#check Nat.dvd_factorial
+#check Nat.dvd_sub
+#check Nat.add_one 1
 theorem primes_infinite : ∀ n, ∃ p > n, Nat.Prime p := by
   intro n
   have : 2 ≤ Nat.factorial (n + 1) + 1 := by
-    sorry
+    have : 2 = 1 + 1 := by ring
+    rw [this]
+    apply Nat.add_le_add_right
+    induction' n with n hn
+    · rw [Nat.zero_add, Nat.factorial_one]
+    rw [Nat.factorial]
+    nth_rw 1 [← mul_one 1]
+    apply Nat.mul_le_mul _ hn
+    apply Nat.succ_le_succ
+    apply Nat.cast_nonneg
   rcases exists_prime_factor this with ⟨p, pp, pdvd⟩
   refine' ⟨p, _, pp⟩
   show p > n
   by_contra ple
   push_neg  at ple
-  have : p ∣ Nat.factorial (n + 1) := by
-    sorry
+  have h1 : p ∣ Nat.factorial (n + 1) := by
+    apply Nat.dvd_factorial
+    apply lt_of_lt_of_le _ (Nat.Prime.two_le pp)
+    norm_num
+    linarith
   have : p ∣ 1 := by
-    sorry
-  show False
-  sorry
+    have : Nat.factorial (n + 1) + 1 - Nat.factorial (n + 1) = 1 := by
+      apply Nat.add_sub_cancel_left
+    rw [← this]
+    apply Nat.dvd_sub
+    linarith
+    exact pdvd
+    exact h1
+  rw [Nat.dvd_one] at this
+  rw [this] at pp
+  exact Nat.not_prime_one pp
 open Finset
 
 section
@@ -90,19 +114,33 @@ section
 variable {α : Type*} [DecidableEq α] (r s t : Finset α)
 
 example : (r ∪ s) ∩ (r ∪ t) = r ∪ s ∩ t := by
-  sorry
+  ext x
+  simp
+  tauto
+
 example : (r \ s) \ t = r \ (s ∪ t) := by
-  sorry
+  ext x
+  simp
+  tauto
 
 end
 
 example (s : Finset ℕ) (n : ℕ) (h : n ∈ s) : n ∣ ∏ i in s, i :=
   Finset.dvd_prod_of_mem _ h
 
+#check Nat.Prime.eq_one_or_self_of_dvd
 theorem _root_.Nat.Prime.eq_of_dvd_of_prime {p q : ℕ}
       (prime_p : Nat.Prime p) (prime_q : Nat.Prime q) (h : p ∣ q) :
     p = q := by
-  sorry
+    have h1: p = 1 ∨ p = q := by
+      apply Nat.Prime.eq_one_or_self_of_dvd prime_q
+      exact h
+    rcases h1 with h1 | h1
+    · rw [h1] at prime_p
+      apply Nat.not_prime_one at prime_p
+      exfalso
+      exact prime_p
+    exact h1
 
 theorem mem_of_dvd_prod_primes {s : Finset ℕ} {p : ℕ} (prime_p : p.Prime) :
     (∀ n ∈ s, Nat.Prime n) → (p ∣ ∏ n in s, n) → p ∈ s := by
@@ -112,10 +150,16 @@ theorem mem_of_dvd_prod_primes {s : Finset ℕ} {p : ℕ} (prime_p : p.Prime) :
     linarith [prime_p.two_le]
   simp [Finset.prod_insert ans, prime_p.dvd_mul] at h₀ h₁
   rw [mem_insert]
-  sorry
+  rcases h₁ with hl | hr
+  left
+  apply _root_.Nat.Prime.eq_of_dvd_of_prime prime_p h₀.left hl
+  right
+  apply ih h₀.right hr
+
 example (s : Finset ℕ) (x : ℕ) : x ∈ s.filter Nat.Prime ↔ x ∈ s ∧ x.Prime :=
   mem_filter
 
+#check Finset.prod_pos
 theorem primes_infinite' : ∀ s : Finset Nat, ∃ p, Nat.Prime p ∧ p ∉ s := by
   intro s
   by_contra h
@@ -126,15 +170,24 @@ theorem primes_infinite' : ∀ s : Finset Nat, ∃ p, Nat.Prime p ∧ p ∉ s :=
     simp [s'_def]
     apply h
   have : 2 ≤ (∏ i in s', i) + 1 := by
-    sorry
+    have : 2 = 1 + 1 := by ring
+    rw [this]
+    apply add_le_add_right
+    apply Nat.succ_le_of_lt
+    apply Finset.prod_pos
+    intro p hp
+    apply (mem_s'.mp hp).pos
   rcases exists_prime_factor this with ⟨p, pp, pdvd⟩
   have : p ∣ ∏ i in s', i := by
-    sorry
+    apply Finset.dvd_prod_of_mem
+    exact mem_s'.mpr pp
   have : p ∣ 1 := by
     convert Nat.dvd_sub' pdvd this
     simp
   show False
-  sorry
+  simp at this
+  linarith [pp.two_le]
+
 theorem bounded_of_ex_finset (Q : ℕ → Prop) :
     (∃ s : Finset ℕ, ∀ k, Q k → k ∈ s) → ∃ n, ∀ k, Q k → k < n := by
   rintro ⟨s, hs⟩
@@ -172,8 +225,17 @@ theorem two_le_of_mod_4_eq_3 {n : ℕ} (h : n % 4 = 3) : 2 ≤ n := by
       rw [neq] at h
       norm_num at h
 
+#check Nat.div_dvd_of_dvd
+#check Nat.div_lt_self
 theorem aux {m n : ℕ} (h₀ : m ∣ n) (h₁ : 2 ≤ m) (h₂ : m < n) : n / m ∣ n ∧ n / m < n := by
-  sorry
+  constructor
+  · apply Nat.div_dvd_of_dvd h₀
+  apply Nat.div_lt_self
+  apply lt_of_le_of_lt _ h₂
+  apply le_trans _ h₁
+  norm_num
+  linarith
+
 theorem exists_prime_factor_mod_4_eq_3 {n : Nat} (h : n % 4 = 3) :
     ∃ p : Nat, p.Prime ∧ p ∣ n ∧ p % 4 = 3 := by
   by_cases np : n.Prime
@@ -192,8 +254,19 @@ theorem exists_prime_factor_mod_4_eq_3 {n : Nat} (h : n % 4 = 3) :
     apply mod_4_eq_3_or_mod_4_eq_3
     rw [neq, h]
   rcases this with h1 | h1
-  . sorry
-  . sorry
+  · by_cases h3: Nat.Prime m
+    · use m
+    apply ih m mltn h1 at h3
+    obtain ⟨p, ⟨pp, pm, p43⟩⟩ := h3
+    use p
+    exact ⟨pp, ⟨Nat.dvd_trans pm mdvdn, p43⟩⟩
+  by_cases h3: Nat.Prime m
+  · use m
+    have :m % 4 = 3 := by
+      rw [← neq, Nat.mul_mod, h1] at h
+      sorry
+    exact ⟨h3, ⟨mdvdn, this⟩⟩
+
 example (m n : ℕ) (s : Finset ℕ) (h : m ∈ erase s n) : m ≠ n ∧ m ∈ s := by
   rwa [mem_erase] at h
 
@@ -201,6 +274,8 @@ example (m n : ℕ) (s : Finset ℕ) (h : m ∈ erase s n) : m ≠ n ∧ m ∈ s
   simp at h
   assumption
 
+#check Nat.dvd_add_iff_left
+#check Nat.dvd_sub'
 theorem primes_mod_4_eq_3_infinite : ∀ n, ∃ p > n, Nat.Prime p ∧ p % 4 = 3 := by
   by_contra h
   push_neg  at h
@@ -213,17 +288,32 @@ theorem primes_mod_4_eq_3_infinite : ∀ n, ∃ p > n, Nat.Prime p ∧ p % 4 = 3
     exact ⟨p, pltn, pp, p4⟩
   rcases this with ⟨s, hs⟩
   have h₁ : ((4 * ∏ i in erase s 3, i) + 3) % 4 = 3 := by
-    sorry
+    rw [← Nat.mod_add_mod, Nat.mul_mod_right, zero_add]
+    ring
   rcases exists_prime_factor_mod_4_eq_3 h₁ with ⟨p, pp, pdvd, p4eq⟩
   have ps : p ∈ s := by
-    sorry
+    exact (hs p).mp ⟨pp, p4eq⟩
   have pne3 : p ≠ 3 := by
-    sorry
+    intro peq3
+    rw [peq3] at pdvd
+    obtain h1 := Nat.dvd_sub' pdvd dvd_rfl
+    rw [Nat.add_sub_cancel] at h1
+    rw [Nat.prime_three.dvd_mul] at h1
+    norm_num at h1
+    have : 3 ∈ s.erase 3 := by
+      apply mem_of_dvd_prod_primes Nat.prime_three _ h1
+      intro n
+      simp [← hs n]
+      tauto
+    simp at this
   have : p ∣ 4 * ∏ i in erase s 3, i := by
-    sorry
+    apply dvd_trans _ (dvd_mul_left _ _)
+    apply dvd_prod_of_mem
+    simp
+    exact ⟨pne3, ps⟩
   have : p ∣ 3 := by
-    sorry
+    convert Nat.dvd_sub' pdvd this
+    simp
   have : p = 3 := by
-    sorry
+    apply pp.eq_of_dvd_of_prime Nat.prime_three this
   contradiction
-
