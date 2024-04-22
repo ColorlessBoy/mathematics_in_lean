@@ -42,7 +42,6 @@ end
 
 example (α : Type*) : Equiv.Perm α = (α ≃ α) :=
   rfl
-
 def permGroup {α : Type*} : Group₁ (Equiv.Perm α)
     where
   mul f g := Equiv.trans g f

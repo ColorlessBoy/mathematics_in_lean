@@ -11,10 +11,10 @@ structure gaussInt where
 namespace gaussInt
 
 instance : Zero gaussInt :=
-  ⟨⟨0, 0⟩⟩
+  ⟨0, 0⟩
 
 instance : One gaussInt :=
-  ⟨⟨1, 0⟩⟩
+  ⟨1, 0⟩
 
 instance : Add gaussInt :=
   ⟨fun x y ↦ ⟨x.re + y.re, x.im + y.im⟩⟩
@@ -120,8 +120,12 @@ instance instCommRing : CommRing gaussInt where
   mul_comm := by
     intros
     ext <;> simp <;> ring
-  zero_mul := sorry
-  mul_zero := sorry
+  zero_mul := by
+    intro a
+    ext <;> simp
+  mul_zero := by
+    intro a
+    ext <;> simp
 
 @[simp]
 theorem sub_re (x y : gaussInt) : (x - y).re = x.re - y.re :=
