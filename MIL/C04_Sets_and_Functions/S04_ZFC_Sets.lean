@@ -137,10 +137,50 @@ theorem inductiveSet_sep {X : ZFSet} (h1 : inductiveSet X) : inductiveSet (ZFSet
   rw [hz2]
   exact h2
 
+theorem inductive_of_inter_of_emptyset{X Y : ZFSet} (h1: inductiveSet X) (h2: inductiveSet Y) : inductiveSet (X ∩ Y) := by
+  obtain ⟨h1l, h1r⟩ := h1
+  obtain ⟨h2l, h2r⟩ := h2
+  constructor
+  · rw [mem_inter]
+    exact ⟨h1l, h2l⟩
+  rintro x
+  rw [mem_inter, mem_inter]
+  rintro ⟨xX, xY⟩
+  exact ⟨h1r _ xX, h2r _ xY⟩
 
-theorem inductive_of_inter_of_inductiveSet {N X : ZFSet} (h1 : ∀ X, inductiveSet X → N ⊆ X) : inductiveSet N := by
-  sorry
+theorem inductive_omega : inductiveSet ZFSet.omega := by
+  constructor
+  · exact ZFSet.omega_zero
+  intro n hn
+  apply ZFSet.omega_succ at hn
+  have h : n ∪ {n} = insert n n := by
+    ext x
+    rw [ZFSet.mem_insert_iff, ZFSet.mem_union, mem_singleton, Or.comm]
+  rw [h]
+  exact hn
 
+-- Infinity 保证至少存在一个inductiveSet
+-- Separation Schema 保证所有inductiveSet的交集是一个集合
+-- 证明：所有inductiveSet的交集是一个inductiveSet
+def sInter_of_all_inductiveSet := ZFSet.sep (fun x ↦ ∀ X, inductiveSet X → x ∈ X) ZFSet.omega
+#check sInter_of_all_inductiveSet
+theorem inductive_of_inter_of_inductiveSet : inductiveSet sInter_of_all_inductiveSet := by
+  unfold sInter_of_all_inductiveSet
+  constructor
+  · rw [mem_sep]
+    constructor
+    · apply ZFSet.omega_zero
+    intro X hX
+    exact hX.left
+  intro x hx
+  rw [mem_sep]
+  rw [mem_sep] at hx
+  constructor
+  · apply inductive_omega.right
+    exact hx.left
+  intro X hX
+  obtain h3 := hx.right _ hX
+  apply hX.right _ h3
 
 theorem setin_not_comm{a b : ZFSet} : ¬ (a ∈ b ∧ b ∈ a) := by
   by_contra h1
