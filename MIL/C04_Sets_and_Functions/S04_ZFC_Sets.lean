@@ -117,7 +117,7 @@ transitive S ↔ ∀ x ∈ S, x ⊆ S
 def inductiveSet (S : ZFSet) : Prop := ∅ ∈ S ∧ ∀ x ∈ S, x ∪ {x} ∈ S
 def transitiveSet (S : ZFSet) : Prop := ∀ x, x ∈ S → x ⊆ S
 
-theorem inductiveSet_sep {X : ZFSet} (h1 : inductiveSet X) : inductiveSet (ZFSet.sep (fun (x: ZFSet) ↦ x ⊆ X) X) := by
+theorem inductiveSet_sub {X : ZFSet} (h1 : inductiveSet X) : inductiveSet (ZFSet.sep (fun (x: ZFSet) ↦ x ⊆ X) X) := by
   obtain ⟨h1l, h1r⟩ := h1
   constructor
   · rw [mem_sep]
@@ -137,7 +137,7 @@ theorem inductiveSet_sep {X : ZFSet} (h1 : inductiveSet X) : inductiveSet (ZFSet
   rw [hz2]
   exact h2
 
-theorem inductive_of_inter_of_emptyset{X Y : ZFSet} (h1: inductiveSet X) (h2: inductiveSet Y) : inductiveSet (X ∩ Y) := by
+theorem inductiveSet_inter{X Y : ZFSet} (h1: inductiveSet X) (h2: inductiveSet Y) : inductiveSet (X ∩ Y) := by
   obtain ⟨h1l, h1r⟩ := h1
   obtain ⟨h2l, h2r⟩ := h2
   constructor
@@ -162,14 +162,14 @@ theorem inductive_omega : inductiveSet ZFSet.omega := by
 -- Infinity 保证至少存在一个inductiveSet
 -- Separation Schema 保证所有inductiveSet的交集是一个集合
 -- 证明：所有inductiveSet的交集是一个inductiveSet
-def sInter_of_all_inductiveSet := ZFSet.sep (fun x ↦ ∀ X, inductiveSet X → x ∈ X) ZFSet.omega
-#check sInter_of_all_inductiveSet
-theorem inductive_of_inter_of_inductiveSet : inductiveSet sInter_of_all_inductiveSet := by
-  unfold sInter_of_all_inductiveSet
+def inter_of_all_inductiveSet := ZFSet.sep (fun x ↦ ∀ X, inductiveSet X → x ∈ X) ZFSet.omega
+#check inter_of_all_inductiveSet
+theorem inductive_of_inter_of_all_inductiveSet : inductiveSet inter_of_all_inductiveSet := by
+  unfold inter_of_all_inductiveSet
   constructor
   · rw [mem_sep]
     constructor
-    · apply ZFSet.omega_zero
+    · apply inductive_omega.left
     intro X hX
     exact hX.left
   intro x hx
@@ -181,6 +181,360 @@ theorem inductive_of_inter_of_inductiveSet : inductiveSet sInter_of_all_inductiv
   intro X hX
   obtain h3 := hx.right _ hX
   apply hX.right _ h3
+
+def subInductiveSet (X : ZFSet) := ZFSet.sep (fun x ↦ x = ∅ ∨ ∀ y ∈ x, y ∈ X) X
+theorem inductive_of_pureInductiveSet {X : ZFSet} (h1 : inductiveSet X) : inductiveSet (subInductiveSet X) := by
+  unfold inductiveSet
+  rw [subInductiveSet, mem_sep]
+  constructor
+  · exact ⟨h1.left, Or.inl rfl⟩
+  intro x hx
+  rw [mem_sep]
+  rw [mem_sep] at hx
+  constructor
+  · exact h1.right _ hx.left
+  right
+  intro y hy
+  rw [mem_union] at hy
+  rcases hy with hy1 | hy2
+  · rcases hx.right with hx1 | hx2
+    rw [hx1] at hy1
+    exfalso
+    exact ZFSet.not_mem_empty _ hy1
+    exact hx2 _ hy1
+  rw [mem_singleton] at hy2
+  rw [hy2]
+  exact hx.left
+
+theorem transitive_of_inter : transitiveSet inter_of_all_inductiveSet := by
+  unfold transitiveSet inter_of_all_inductiveSet
+  intro x hx y hy1
+  rw [mem_sep]
+  rw [mem_sep] at hx
+  obtain ⟨hx1, hx2⟩ := hx
+  obtain h2 := hx2 _ (inductive_of_pureInductiveSet inductive_omega)
+  rw [subInductiveSet, mem_sep] at h2
+  rcases h2.right with h3 | h3
+  · rw [h3] at hy1
+    exfalso
+    exact ZFSet.not_mem_empty _ hy1
+  constructor
+  · exact h3 _ hy1
+  intro X hX
+  obtain h4 := hx2 _ (inductive_of_pureInductiveSet hX)
+  rw [subInductiveSet, mem_sep] at h4
+  rcases h4.right with h5 | h5
+  · exfalso
+    rw [h5] at hy1
+    exact ZFSet.not_mem_empty _ hy1
+  exact h5 _ hy1
+
+def n_of_inter_of_all_inductiveSet (n : ZFSet) := ZFSet.sep (fun m ↦ m ∈ n) inter_of_all_inductiveSet
+theorem is_n_of_inter_of_all_inductiveSet : ∀ n ∈ inter_of_all_inductiveSet, n = n_of_inter_of_all_inductiveSet n := by
+  intro n hn
+  unfold inter_of_all_inductiveSet at hn
+  rw [mem_sep] at hn
+  ext x
+  rw [n_of_inter_of_all_inductiveSet, mem_sep, inter_of_all_inductiveSet, mem_sep]
+  constructor
+  · intro xn
+    constructor
+    · constructor
+      · obtain h1 := hn.right _ (inductive_of_pureInductiveSet inductive_omega)
+        rw [subInductiveSet, mem_sep] at h1
+        rcases h1.right with h2 | h2
+        · exfalso
+          rw [h2] at xn
+          exact ZFSet.not_mem_empty _ xn
+        exact h2 _ xn
+      intro X hX
+      obtain h1 := hn.right _ (inductive_of_pureInductiveSet hX)
+      rw [subInductiveSet, mem_sep] at h1
+      rcases h1.right with h2 | h2
+      · rw [h2] at xn
+        exfalso
+        exact ZFSet.not_mem_empty _ xn
+      exact h2 _ xn
+    exact xn
+  intro hn2
+  exact hn2.right
+
+
+theorem inductiveSet_trans {X : ZFSet} (h1 : inductiveSet X) : inductiveSet (ZFSet.sep (fun (x: ZFSet) ↦ transitiveSet x) X) := by
+  unfold inductiveSet
+  rw [mem_sep]
+  constructor
+  · apply And.intro h1.left
+    unfold transitiveSet
+    intro x hx
+    exfalso
+    exact ZFSet.not_mem_empty _ hx
+  intro x hx
+  rw [mem_sep]
+  rw [mem_sep] at hx
+  constructor
+  · exact h1.right _ hx.left
+  unfold transitiveSet
+  rintro y hy z hz
+  rw [mem_union]
+  rw [mem_union] at hy
+  left
+  rcases hy with hy | hy
+  · exact hx.right _ hy hz
+  rw [mem_singleton] at hy
+  rw [hy] at hz
+  exact hz
+
+theorem transitive_of_inter_of_all_inductiveSet : ∀ n ∈ inter_of_all_inductiveSet, transitiveSet n := by
+  intro n hn
+  rw [inter_of_all_inductiveSet, mem_sep] at hn
+  rw [transitiveSet]
+  intro x xn y yx
+  obtain h1 := hn.right _ (inductiveSet_trans inductive_of_inter_of_all_inductiveSet)
+  rw [mem_sep] at h1
+  obtain ⟨_, h1r⟩ := h1
+  rw [transitiveSet] at h1r
+  exact h1r _ xn yx
+
+theorem transitive_of_empty : transitiveSet ∅ := by
+  unfold transitiveSet
+  intro x hx
+  exfalso
+  exact ZFSet.not_mem_empty _ hx
+
+theorem inductiveSet_trans_and_notself {X : ZFSet} (h1 : inductiveSet X) : inductiveSet (ZFSet.sep (fun (x: ZFSet) ↦ transitiveSet x ∧ x ∉ x) X) := by
+  rw [inductiveSet, mem_sep]
+  constructor
+  · constructor
+    · exact h1.left
+    exact ⟨transitive_of_empty, ZFSet.not_mem_empty _⟩
+  intro x hx
+  rw [mem_sep]
+  rw [mem_sep] at hx
+  obtain ⟨hx1, ⟨hx2, hx3⟩⟩ := hx
+  rw [transitiveSet] at hx2
+  constructor
+  · exact h1.right _ hx1
+  constructor
+  · unfold transitiveSet
+    intro y hy z hz
+    rw [mem_union]
+    rw [mem_union] at hy
+    rcases hy with hy | hy
+    · left
+      exact hx2 _ hy hz
+    rw [mem_singleton]
+    rw [mem_singleton] at hy
+    rw [hy] at hz
+    left
+    exact hz
+  intro hxx
+  rw [mem_union, mem_singleton] at hxx
+  rcases hxx with hxx | hxx
+  · obtain hxx2 := hx2 _ hxx
+    apply hx3
+    apply hxx2
+    rw [mem_union, mem_singleton]
+    right
+    rfl
+  apply hx3
+  rw [ZFSet.ext_iff] at hxx
+  apply (hxx _).mp
+  rw [mem_union, mem_singleton]
+  right
+  rfl
+
+theorem not_self_of_inter_of_all_inductiveSet : ∀ n ∈ inter_of_all_inductiveSet, n ∉ n ∧ n ≠ n ∪ {n} := by
+  intro n hn
+  rw [inter_of_all_inductiveSet, mem_sep] at hn
+  obtain h1 := hn.right _ (inductiveSet_trans_and_notself inductive_omega)
+  rw [mem_sep] at h1
+  constructor
+  · exact h1.right.right
+  intro hn2
+  apply h1.right.right
+  have : n ∈ n ∪ {n} := by
+    rw [mem_union, mem_singleton]
+    right
+    rfl
+  rw [← hn2] at this
+  exact this
+
+theorem transitive_of_next {x: ZFSet} (h1: transitiveSet x) : transitiveSet (x ∪ {x}) := by
+  intro z hz w hw
+  rw [mem_union]
+  rw [mem_union, mem_singleton] at hz
+  rcases hz with hz | hz
+  · left
+    exact h1 _ hz hw
+  rw [hz] at hw
+  left
+  exact hw
+
+def inMinimalSet(X : ZFSet) := ZFSet.sep (fun x ↦ ∀ s ∈ X, s ∉ x) X
+theorem inductiveSet_trans_and_inminimal {X : ZFSet} (h1 : inductiveSet X) : inductiveSet (ZFSet.sep (fun (x: ZFSet) ↦ transitiveSet x ∧ ∀ y ⊆ x, y ≠ ∅ → inMinimalSet y ≠ ∅) X) := by
+  rw [inductiveSet, mem_sep]
+  constructor
+  · constructor
+    exact h1.left
+    constructor
+    · exact transitive_of_empty
+    intro z hz1 hz2
+    exfalso
+    apply hz2
+    ext w
+    constructor
+    · intro wz
+      exfalso
+      exact ZFSet.not_mem_empty _ (hz1 wz)
+    intro hw
+    exfalso
+    exact ZFSet.not_mem_empty _ hw
+  intro x
+  rw [mem_sep, mem_sep]
+  rintro ⟨h2, ⟨h3, h4⟩⟩
+  constructor
+  · exact h1.right _ h2
+  constructor
+  · exact transitive_of_next h3
+  have hx1 : x ∉ x := by
+    intro hx
+    have hx11: {x} ⊆ x := by
+      intro w hw
+      rw [mem_singleton] at hw
+      rw [hw]
+      exact hx
+    have h2: {x} ≠ ∅ := by
+      intro h1
+      apply ZFSet.not_mem_empty x
+      rw [← h1, mem_singleton]
+    apply h4 _ hx11 h2
+    ext w
+    rw [inMinimalSet, mem_sep]
+    constructor
+    · rintro ⟨h5, h6⟩
+      obtain h7 := h6 _ h5
+      rw [mem_singleton] at h5
+      rw [h5] at h7
+      exfalso
+      apply h7 hx
+    intro hw
+    exfalso
+    exact ZFSet.not_mem_empty _ hw
+  have hx3 {z: ZFSet} (h1: z ⊆ x) : inMinimalSet z ⊆ inMinimalSet (z ∪ {x}) := by
+    intro y hy
+    rw [inMinimalSet, mem_sep, mem_union]
+    rw [inMinimalSet, mem_sep] at hy
+    constructor
+    · left
+      exact hy.left
+    intro s hs sy
+    rw [mem_union] at hs
+    obtain tmp1 := h1 hy.left
+    obtain tmp2 := h3 _ tmp1 sy
+    rcases hs with hs | hs
+    · exact hy.right _ hs sy
+    rw [mem_singleton] at hs
+    rw [hs] at tmp2
+    exact hx1 tmp2
+  intro y hy1 hy2
+  by_cases hy3 : y ⊆ x
+  · exact h4 _ hy3 hy2
+  by_cases hy4: y = {x}
+  · intro hy5
+    rw [inMinimalSet, ZFSet.ext_iff] at hy5
+    apply ZFSet.not_mem_empty x
+    apply (hy5 _).mp
+    rw [mem_sep]
+    constructor
+    · rw [hy4, mem_singleton]
+    intro s sy
+    rw [hy4, mem_singleton] at sy
+    rw [sy]
+    exact hx1
+  have hy5 : ∃ z, z ≠ ∅ ∧ z ⊆ x ∧ y = z ∪ {x} := by
+    use ZFSet.sep (fun s ↦ s ≠ x) y
+    constructor
+    · intro hy
+      apply hy4
+      ext z
+      rw [mem_singleton]
+      rw [ZFSet.ext_iff] at hy
+      obtain hy5 := hy z
+      rw [mem_sep] at hy5
+      by_contra hy6
+      push_neg at hy6
+      rcases hy6 with hy6 | hy6
+      · rw [hy5] at hy6
+        exact ZFSet.not_mem_empty _ hy6
+      obtain ⟨hy7, hy8⟩ := hy6
+      have hy9: ∃ w, w ∈ y ∧ w ≠ x := by
+        by_contra hy91
+        push_neg at hy91
+        apply hy2
+        ext w
+        obtain hy92 := hy91 w
+        constructor
+        · intro wy
+          exfalso
+          obtain hy93 := hy92 wy
+          rw [hy8, ← hy93] at hy7
+          exact hy7 wy
+        intro wempty
+        exfalso
+        exact ZFSet.not_mem_empty _ wempty
+      obtain ⟨w, hw⟩ := hy9
+      obtain hy94 := hy w
+      rw [mem_sep] at hy94
+      rw [hy94] at hw
+      exfalso
+      exact ZFSet.not_mem_empty _ hw
+    constructor
+    · intro z zy
+      rw [mem_sep] at zy
+      obtain hy5 := hy1 zy.left
+      rw [mem_union, mem_singleton] at hy5
+      rcases hy5 with hy5 | hy5
+      exact hy5
+      exfalso
+      exact zy.right hy5
+    ext z
+    rw [mem_union, mem_sep, mem_singleton]
+    constructor
+    · intro zy
+      by_cases tmp: z = x
+      right
+      exact tmp
+      left
+      exact ⟨zy, tmp⟩
+    rintro (⟨zy, _⟩ | hz)
+    · exact zy
+    rw [hz]
+    by_contra hz2
+    apply hy3
+    intro w hw
+    obtain hz3 := hy1 hw
+    rw [mem_union] at hz3
+    rcases hz3 with hz3 | hz3
+    · exact hz3
+    rw [mem_singleton] at hz3
+    rw [hz3] at hw
+    exfalso
+    apply hz2 hw
+  obtain ⟨z, ⟨hz1, ⟨ hz2, hz3 ⟩⟩⟩ := hy5
+  rw [hz3]
+  obtain hz4 := h4 _ hz2 hz1
+  obtain hz5 := hx3 hz2
+  by_contra hz6
+  rw [hz6] at hz5
+  apply hz4
+  ext w
+  constructor
+  · intro wz
+    apply hz5 wz
+  intro wz
+  exfalso
+  exact ZFSet.not_mem_empty _ wz
 
 theorem setin_not_comm{a b : ZFSet} : ¬ (a ∈ b ∧ b ∈ a) := by
   by_contra h1
